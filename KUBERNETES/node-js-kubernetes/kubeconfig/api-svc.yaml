@@ -1,0 +1,15 @@
+apiVersion: v1 # Specifies the API version being used, in this case, the core/v1 API for Services
+kind: Service # Indicates that this configuration is for a Service
+metadata:
+  name: api-heroes-svc # The name of the Service, used to identify it within the namespace
+  labels:
+    version: v1 # Label used to specify the version of the application
+    app: api-heroes # Label used to identify the application associated with this Service
+spec:
+  selector:
+    app: api-heroes # Selector used to find the Pods this Service will route traffic to, based on their labels
+  type: LoadBalancer # Service type, exposing the service externally using a cloud provider's load balancer
+  ports:
+    - protocol: TCP # The protocol used by the Service (TCP in this case)
+      port: 5432 # The port that the Service will expose
+      targetPort: 4000 # The port on the Pod that the Service will forward traffic to

@@ -1,0 +1,243 @@
+Cluster -> Uma ou mais máquinas trabalhando em conjunto. AWS, Google Cloud, Azure, Minikube...
+
+- Cada máquina no cluster recebe denominações diferentes:
+ - Master: responsável por gerenciar o cluster, manter e atualizar o estado desejado e receber e executar novos comandos -> control plane ->
+  - api: recebe e executa nossos comandos.
+  - controler manager: mantém e atualiza o estado desejado.
+  - scheduler: definir onde determinado pod vai ser executado no nosso cluster.
+  - etcd: armazena os dados vitais do cluster através de uma db chave-valor.
+ - Node: executam os pods que encapsulam os containeres (aplicações) -> Nodes ->
+  - container runtime: lugar onde o pod e seus containeres são "agendados" (executados?).
+  - kubelet: responsável pela execução dos pods dentro dos Nodes e comunicação com o control plane, recebe definições de Pod e interage com o container runtime no nó para executar os containeres associados ao pod, também monitora a saúde e recursos do pod.
+  - kube-proxy: responsável pela comunicação entre os nós no cluster.
+
+kubectl get Nodes - lista os Nodes em execução
+
+POD: é um conjunto de um ou mais containers. Cada POD tem um endereço IP, e para os containers nele contidos, são atribuidas portas deste endereço. Se todos os containeres dentro do POD falhar, o POD é recriado pelo kubernetes, se somente alguns containeres dentro do POD falharem, somente eles são recriados pelo kubernetes (comportamento padrão vulgo da pra mudar).
+ - Compartilham namespaces de rede e IPC.
+ - Podem compartilhar volumes.
+ 
+kubectl run {pod_name} --image={image}
+kubectl get pods --watch
+kubectl describe {pod_name}
+kubectl apply -f {pod_path}
+kubectl delete pod {pod_name}
+kubectl delete -f {pod_path}
+kubectl exec -it {pod_name} -- {command}
+
+apiVersion: v1 # Versão da API kubernetes usada
+kind: Pod # Tipo de recurso q queremos criar
+metadata:
+ name: first-pod
+spec:
+ containers:
+  - name: nginx-container
+    image: nginx:latest
+
+Comandos minikube:
+ - minikube addons list
+ - minikube addons enable metrics-server
+ - minikube addons enable dashboard
+ - minikube dashboard --url
+
+kubectl proxy -> inicia um server proxy exposto por default na porta 8001 que corresponde a uma api do próprio kubectl
+
+/home/user/.kube/kubeconfig
+
+Namespaces:
+	Geralmente o kubernetes cria 4 namespaces por padrão:
+	- default: que contém objetos e recursos criados pelos adms e devs, e esses objetos e recursos são atribuídos a este namespace por padrão a não ser que algum outro seja provido.
+	- kube-system: contém objetos criados pelo sistema do kubernetes, geralmente agentes do control plane (api-server, control manager, etcd, scheduler...).
+	- kube-public: contém objetos públicos, geralmente para expor informações (n sensíveis) sobre o cluster.
+	- kube-Node-lease: objetos que podem ser "alugados", sla tendi porra nenhuma disso.
+
+kubectl get namespaces
+kubectl create namespace new-namespace-name
+
+resource quotas: limitam o consumo por namespace - https://kubernetes.io/docs/concepts/policy/resource-quotas/
+limit ranges: limitam o consumo de cada objeto válido para a limitação, tipo pods ou PersistentVolumeClaims dentro de um namespace - https://kubernetes.io/docs/concepts/policy/limit-range/
+
+Pods:
+       Unidade de deploy do kubernetes, representando uma única instância de uma aplicação e, podendo conter um ou mais containeres, os quais utilizam o mesmo IP provido ao Pod. Os pods são efêmeros e por isso motivo são utilizados com controllers ou operators, que são utilizados alternadamente, que gerenciam a replicação dos pods, tolerância a falhas e auto reparo. Tipos de controllers são os Deploymentes, ReplicaSet, DaemonSets, Jobs etc...
+ 	O nome e label dos pods são usados para contagem de carga de trabalho.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-pod
+  labels:
+    run: nginx-pod
+spec:
+  containers:
+  - name: nginx-pod
+    image: nginx:1.22.1
+    ports:
+    - containerPort: 80
+
+kubectl create -f def-pod.yaml -> cria um pod criado kk declarativamente
+kubectl run nginx-pod --image=nginx:1.22.1 --port=80 -> criação imperativa de pod
+kubectl run nginx-pod --image=nginx:1.22.1 --port=80 \
+--dry-run=client -o yaml > nginx-pod.yaml -> dry-run mostra um preview declarativo do que será criado imperativamente
+kubectl apply -f nginx-pod.yaml
+kubectl get pods
+kubectl get pod nginx-pod -o yaml
+kubectl get pod nginx-pod -o json
+kubectl describe pod nginx-pod
+kubectl delete pod nginx-pod
+
+Labels:
+	Selecionam e organizam um grupo de objetos como Pods, ReplicaSets, Nodes, Namespaces e Persistent Volumes, baseado nos requisitos impostos. Eles não provem unicidade ao objeto, muitos objetos podem ter a mesma label. Por ex:
+	- A: app=frontend e env=dev, B: app=backend e env=dev, C: app=frontend e env=qa, D: app=backend e env=qa.
+	No exemplo, temos os objetos A e B agrupados pela label env=dev e os Objetos A, C e B, D pelo label app=dev.
+
+Label Selectors: 
+	Controllers ou operators e services usam isso pra selecionar um subgrupo de objeto. Existem dois tipos de seletores
+	- Equality-Based Selectors: permitem filtrar objetos baseados nas chaves e valores dos label. A igualidade é feita usando = ou ==, ou !=.
+	- Set-Based Selectors: permitem filtrar objetos baseados em um conjunto de valores. Podem ser usados os operadores in, notin para os valores das labels, e exist/does not exist para as chaves. 
+	Exemplo: env in (dev, qa) ou !app (seleciona objs com chave diferente de app).
+
+Replication Controllers: (uso n mais recomendado)
+	Garante que um especificado numero de replicas de um pod estão sendo executadas a qualquer momento, comparando o estado desejado com o atual, requisitando a criação de novos pods se existem menos que o esperado, e matando pods se existem mais do que o desejado.
+
+ReplicaSet: (substituto do Replication Controller)
+	Mesma função do Replication Controller com a diferença de que esse suporta os dois tipos de Label Selectors (RC só suporta equality-based). Com os ReplicaSets, o número de pods executando uma imagem do container do aplicativo podem ser escalados, esse escalonamento pode ser feito manualmente ou usando um autoscaler (HorizontalPodAutoscaler  - https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/).
+
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: frontend
+  labels:
+    app: guestbook
+    tier: frontend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: guestbook
+  template:
+    metadata:
+      labels:
+        app: guestbook
+    spec:
+      containers:
+      - name: php-redis
+        image: gcr.io/google_samples/gb-frontend:v3
+
+kubectl create -f redis-rs.yaml
+kubectl apply -f redis-rs.yaml
+kubectl get replicasets
+kubectl get rs
+kubectl scale rs frontend --replicas=4
+kubectl get rs frontend -o yaml
+kubectl get rs frontend -o json
+kubectl describe rs frontend
+kubectl delete rs frontend
+
+Deployment:
+	Fornece atualizações declarativas aos Pods e ReplicaSets. O DeploymentController é parte do controller manager, e por ser um controller, ele também garante que o state atual sempre bate com state desejado. Permite rollbacks a updates (RollingUpdate strategy). Um rolling update é disparada sempre que alteramos propriedades específicas do template do Pod, enquanto que atualizações planejadas, como atualizar a imagem do container, a porta, volumes e mounts disparariam uma nova Revision, outras operações são dinâmicas por nateza, como escalonamento ou adição de labels no deployment (não disparam um rolling update nem Revision).
+
+* Um Deployment cria automaticamente um ReplicaSet que por sua vez cria um Pod.
+* Ao executar update em um deployment, quando for criada uma nova revisão, o kubernetes mantém o histórico das ultimas 10 revisões apenas.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+    app: nginx-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx-deployment
+  template:
+    metadata:
+      labels:
+        app: nginx-deployment
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.20.2
+        ports:
+        - containerPort: 80
+
+kubectl create -f def-deploy.yaml
+kubectl create deployment nginx-deployment \
+--image=nginx:1.20.2 --port=80 --replicas=3
+kubectl create deployment nginx-deployment \
+--image=nginx:1.20.2 --port=80 --replicas=3 \
+--dry-run=client -o yaml > nginx-deploy.yaml
+kubectl create deployment nginx-deployment \
+--image=nginx:1.20.2 --port=80 --replicas=3 \
+--dry-run=client -o json > nginx-deploy.json
+kubectl create -f nginx-deploy.yaml
+kubectl create -f nginx-deploy.json
+
+kubectl apply -f nginx-deploy.yaml --record
+kubectl get deployments
+kubectl get deploy -o wide
+kubectl scale deploy nginx-deployment --replicas=4
+kubectl get deploy nginx-deployment -o yaml
+kubectl get deploy nginx-deployment -o json
+kubectl describe deploy nginx-deployment
+kubectl rollout status deploy nginx-deployment
+kubectl rollout history deploy nginx-deployment
+kubectl rollout history deploy nginx-deployment --revision=1
+kubectl set image deploy nginx-deployment nginx=nginx:1.21.5 --record (record grava o comando usado para atualizar nos detalhes do Deployment)
+kubectl rollout history deploy nginx-deployment --revision=2
+kubectl rollout undo deploy nginx-deployment --to-revision=1
+kubectl get all -l app=nginx -o wide
+kubectl delete deploy nginx-deployment
+kubectl get deploy,rs,po -l app=nginx
+
+DaemonSets:
+	São operators desenhados para gerenciar os Node agentes, que funcionam semelhante aos Deployment e ReplicaSets, com uma diferença, eles forçam que ao menos uma réplica do Pod exista em cada Node, ou em um conjunto de Nodes selecionados. Assim como os Deployment e ReplicaSets, por padrão, não tem nenhum controle sobre o scheduling e placement de múltiplas replicas do Pod dentro do mesmo Node.
+	Ele geralmente é usado quando queremos coletar dados de monitoramento sobre vários Nodes, ou rodar armazenamento, networking ou proxy daemons em todos os Nodes para se certificar de que temos um tipo específico de Pod rodando em todos Nodes a qualquer momento.
+	O kube-proxy rodando como um Pod em todos os Nodes do cluster, os agentes de networking Calico ou Cilium implementando o networking do Pod ao longo de todos os Nodes do cluster, são exemplos de aplicações (node agents) gerenciados por isso aq.
+	Sempre que um Node é inserido no cluster, um Pod com um DaemonSet especificado é automaticamente inserido nesse Node. Quando qualquer Node quebra ou é removido do cluster, o seu respectivo Pod rodando o DaemonSet são jogados no garbage collector. Se um DaemonSet é deletado, todas as réplicas de Pod criadas por ele também são deletadas.
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluentd-agent
+  namespace: default
+  labels:
+    k8s-app: fluentd-agent
+spec:
+  selector:
+    matchLabels:
+      k8s-app: fluentd-agent
+  template:
+    metadata:
+      labels:
+        k8s-app: fluentd-agent
+    spec:
+      containers:
+      - name: fluentd
+        image: quay.io/fluentd_elasticsearch/fluentd:v4.5.2
+
+kubectl create -f fluentd-ds.yaml
+
+kubectl apply -f fluentd-ds.yaml --record
+kubectl get daemonsets
+kubectl get ds -o wide
+kubectl get ds fluentd-agent -o yaml
+kubectl get ds fluentd-agent -o json
+kubectl describe ds fluentd-agent
+kubectl rollout status ds fluentd-agent
+kubectl rollout history ds fluentd-agent
+kubectl rollout history ds fluentd-agent --revision=1
+kubectl set image ds fluentd-agent fluentd=quay.io/fluentd_elasticsearch/fluentd:v4.6.2 --record
+kubectl rollout history ds fluentd-agent --revision=2
+kubectl rollout undo ds fluentd-agent --to-revision=1
+kubectl get all -l k8s-app=fluentd-agent -o wide
+kubectl delete ds fluentd-agent
+kubectl get ds,po -l k8s-app=fluentd-agent
+
+
+
+
+
+
+
+

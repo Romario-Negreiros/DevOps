@@ -1,0 +1,35 @@
+apiVersion: apps/v1 # Specifies the API version being used, apps/v1 is the stable version for Deployments
+kind: Deployment # Indicates that this configuration is for a Deployment
+metadata:
+  name: api-heroes # The name of the Deployment, used to identify it within the namespace
+  labels:
+    app: api-heroes # Labels used to organize and select resources associated with this app
+spec:
+  replicas: 1 # Defines the number of pod replicas to run. In this case, only 1 replica is desired
+  selector:
+    matchLabels:
+      app: api-heroes # Selector to match the Pods managed by this Deployment, based on their labels
+  template:
+    metadata:
+      labels:
+        app: api-heroes # Labels applied to the Pods created by this Deployment
+    spec:
+      containers:
+        - name: api-heroes # Name of the container, which is part of the Pod
+          image: romarion1806/node-js-kubernetes # Docker image to use for the container
+          ports:
+            - containerPort: 4000 # The port exposed by the container, where the app listens
+          env: # Environment variables to pass into the container
+            - name: POSTGRES_HOST
+              value: "postgres:mysecretpassword@postgres-svc" # Connection string for the PostgreSQL database
+            - name: POSTGRES_DB
+              value: "heroes" # Name of the database to connect to
+            - name: PORT
+              value: "4000" # Port number that the app listens on inside the container
+          resources: # Define resource requests and limits here
+            requests:
+              memory: "128Mi" # The amount of memory requested
+              cpu: "250m" # The amount of CPU requested (250m = 250 milicores = 0.25 cores)
+            limits:
+             memory: "256Mi" # The maximum amount of memory the container can use
+             cpu: "500m" # The maximum amount of CPU the container can use (500m = 500 milicores = 0.50 cores)

@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+ name: svc-pod-1
+spec:
+ type: ClusterIP
+ selector: 
+  app: pod-1 # Seleciona todos os recursos com a chave app e valor pod-1
+ ports:
+  - port: 80 # Se a porta q o serviço escuta for diferente da porta do POD v
+  # - targetPort: 80 # Porta q o POD escuta

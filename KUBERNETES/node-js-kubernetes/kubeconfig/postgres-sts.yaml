@@ -1,0 +1,41 @@
+apiVersion: apps/v1 # The API version for StatefulSets
+kind: StatefulSet # Defines the resource type as a StatefulSet
+metadata:
+  name: postgres # Name of the StatefulSet
+  labels:
+    app: postgres # Label to identify this StatefulSet
+spec:
+  serviceName: postgres-svc # Name of the headless Service governing this StatefulSet
+  replicas: 1 # Number of desired Pods (replicas) in the StatefulSet
+  selector:
+    matchLabels:
+      app: postgres # The selector to match Pods with the label `app: postgres`
+  volumeClaimTemplates: # Defines persistent volume claims (PVCs) for Pods
+    - metadata:
+        name: db-storage # Name of the PVC used for storing data
+      spec:
+        storageClassName: standard # The storage class to use for this volume
+        accessModes: 
+          - ReadWriteOnce # Defines that the volume can be mounted as read-write by a single node
+        resources:
+          requests:
+            storage: 1Gi # Requests 1Gi of storage for the volume
+  template: # Defines the Pod template used for creating Pods in the StatefulSet
+    metadata:
+      labels:
+        app: postgres # Label applied to Pods in the StatefulSet
+    spec:
+      containers:
+        - name: postgres # Name of the container
+          image: postgres:latest # The Docker image to use for this container
+          env: # Environment variables for the container
+            - name: POSTGRES_PASSWORD
+              value: "mysecretpassword" # Password for the PostgreSQL database
+            - name: POSTGRES_DB
+              value: "heroes" # Name of the database to create
+          ports:
+            - containerPort: 5432 # The port the PostgreSQL service will listen on
+              name: postgres # Name of the port for identification
+          volumeMounts: # Defines where to mount the volumes inside the container
+            - mountPath: /var/lib/postgresql/data # Mounts the volume at this path
+              name: db-storage # References the volume claim template defined earlier

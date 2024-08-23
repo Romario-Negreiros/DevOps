@@ -1,0 +1,15 @@
+apiVersion: v1 # The API version for the Service resource
+kind: Service # Defines the resource type as a Service
+metadata:
+  name: postgres-svc # The name of the Service
+  labels:
+    version: v1 # Label for identifying the version of the application
+    app: postgres # Label to identify the application associated with this Service
+spec:
+  selector:
+    app: postgres # Selector used to find the Pods this Service will route traffic to
+  type: ClusterIP # Service type, exposing the service only within the cluster
+  ports:
+    - protocol: TCP # Protocol used by the Service
+      port: 5432 # The port that the Service will expose
+      targetPort: 5432 # The port on the Pod that the Service will forward traffic to
