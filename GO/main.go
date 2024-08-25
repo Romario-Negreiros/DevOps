@@ -2,10 +2,49 @@ package main
 
 import (
 	"fmt"
+	"hello-world/employees"
 	"os"
+	"strconv"
 )
 
 func main() {
+
+}
+
+func errAndDefer() {
+	if len(os.Args) != 2 {
+		os.Exit(1)
+	}
+
+	n, err := strconv.Atoi(os.Args[1])
+
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(n)
+	}
+
+	file, err := os.Open("go.mod")
+
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(file)
+	}
+
+	defer file.Close() // O defer inclui a expressão numa pilha a ser executada quando a função em que ele foi utilizado for retornar
+}
+
+func maps() {
+	employees := make(map[string]int)
+	employees["Romario"] = 5000
+	employees["Maria"] = 125
+
+	employee, exists := employees["Romario"]
+	fmt.Println(employee, exists, len(employees))
+}
+
+func arrayAndSlices() {
 	// Array => fixed size
 	var wages [10]int
 	wages[0] = 1000
@@ -30,35 +69,25 @@ func main() {
 	}
 }
 
-type Person struct {
-	name string
-	age  int
-	role string
-}
-
 func structs() {
-	person := &Person{ // & gets the address
-		name: "Romario Negreiros",
-		age:  20,
-		role: "Developer",
+	person := &employees.Person{ // & gets the address
+		Name: "Romario Negreiros",
+		Age:  20,
+		Role: "Developer",
 	}
 
-	fmt.Println(person.name, person.age, person.role)
-	person.increaseAge()
-	fmt.Println(person.name, person.age, person.role)
+	fmt.Println(person.Name, person.Age, person.Role)
+	person.IncreaseAge()
+	fmt.Println(person.Name, person.Age, person.Role)
 
-	person2 := new(Person)
-	person2.name = "Maria"
-	person2.age = 19
-	person2.role = "House Keeper"
+	person2 := new(employees.Person)
+	person2.Name = "Maria"
+	person2.Age = 19
+	person2.Role = "House Keeper"
 
-	fmt.Println(person2.name, person2.age, person2.role)
-	person2.increaseAge()
-	fmt.Println(person2.name, person2.age, person2.role)
-}
-
-func (p *Person) increaseAge() { // * dereferences a pointer (access the value stored in the address)
-	p.age += 1
+	fmt.Println(person2.Name, person2.Age, person2.Role)
+	person2.IncreaseAge()
+	fmt.Println(person2.Name, person2.Age, person2.Role)
 }
 
 func varsAndFunctions() {
