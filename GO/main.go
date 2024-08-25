@@ -8,7 +8,33 @@ import (
 )
 
 func main() {
+	pointers()
+}
 
+type Test struct {
+	number int
+}
+
+func pointers() {
+	var integer int = 45
+
+	var pointer *int = &integer
+
+	fmt.Println(integer, pointer)
+
+	setPointerValue(pointer, 20)
+
+	fmt.Println(integer, pointer)
+
+	test := Test{20}
+	tP := &test
+	tP.number = 47
+
+	fmt.Println(test, tP)
+}
+
+func setPointerValue(integer *int, newValue int) {
+	*integer = newValue
 }
 
 func errAndDefer() {
@@ -32,7 +58,7 @@ func errAndDefer() {
 		fmt.Println(file)
 	}
 
-	defer file.Close() // O defer inclui a expressão numa pilha a ser executada quando a função em que ele foi utilizado for retornar
+	defer file.Close() // Defer includes the expression in a stack that will be executed when the function whose defer was used returns
 }
 
 func maps() {
