@@ -19,7 +19,6 @@ spec:
           image: romarion1806/portfolio:1.0
           ports:
             - containerPort: 5500
-              hostPort: 5500
           resources:
             requests:
               memory: "64Mi" # ~ 67.1 MB
