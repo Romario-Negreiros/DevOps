@@ -7,6 +7,8 @@ PORT=$1
 
 npm run build
 
-docker build -t romarion1806/portfolio:1.0 .
+# docker build -t romarion1806/portfolio:1.0 .
 
-docker run -p $PORT:$PORT romarion1806/portfolio:1.0
+# docker run -p $PORT:$PORT romarion1806/portfolio:1.0
+
+docker compose up --build
