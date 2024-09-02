@@ -1,0 +1,8 @@
+services:
+  portfolio:
+    container_name: portfolio
+    build: 
+      context: .
+    image: romarion1806/portfolio:1.0
+    ports:
+      - 5500:5500
