@@ -1,0 +1,5 @@
+*.txt
+*.env
+*.jpg
+public/documents
+node_modules
