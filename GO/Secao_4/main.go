@@ -6,6 +6,7 @@ import (
 	. "monitorgo/models" //lint:ignore ST1001 should not use dot imports
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -31,16 +32,31 @@ func createServersList(data [][]string) []Server {
 	return servers
 }
 
-func main() {
-	f, err := os.Open("./servers-list.csv")
+func openFiles(serversFilePath string, serversDowntimeFilePath string) (*os.File, *os.File) {
+	serverList, err := os.OpenFile(serversFilePath, os.O_RDWR, 0666)
 
 	if err != nil {
-		handleError(err)
+		fmt.Println(err)
+		os.Exit(1)
 	}
 
-	defer f.Close()
+	downtimeList, err := os.OpenFile(serversDowntimeFilePath, os.O_APPEND|os.O_CREATE, 0666)
 
-	csvReader := csv.NewReader(f)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	return serverList, downtimeList
+}
+
+func main() {
+	serverList, downtimeList := openFiles("./servers-list.csv", "./downtime-list.csv")
+
+	defer serverList.Close()
+	defer downtimeList.Close()
+
+	csvReader := csv.NewReader(serverList)
 	data, err := csvReader.ReadAll()
 
 	if err != nil {
@@ -48,6 +64,7 @@ func main() {
 	}
 
 	servers := createServersList(data)
+	csvWriter := csv.NewWriter(downtimeList)
 
 	for _, server := range servers {
 
@@ -63,5 +80,15 @@ func main() {
 
 		fmt.Println(get)
 		fmt.Printf("Elapsed time: %f", elapsed)
+
+		server.Elapsed = elapsed
+		line := []string{
+			server.Name,
+			server.Url,
+			strconv.FormatFloat(server.Elapsed, 'b', 2, 64),
+		}
+
+		csvWriter.Write(line)
 	}
+	csvWriter.Flush()
 }

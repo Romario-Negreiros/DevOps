@@ -4,4 +4,5 @@ type Server struct {
 	Name string
 	Url string
 	Elapsed float64
+	FailDate string
 }
