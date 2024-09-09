@@ -75,7 +75,7 @@ func (p* productController) GetProductById(ctx *gin.Context) {
 
 	if product == nil {
 		ctx.JSON(http.StatusNotFound, models.Response{
-			Message: fmt.Sprintf("Product with ID: %s was not found", id),
+			Message: fmt.Sprintf("Product with ID %d was not found", id),
 		})
 		return
 	}
